@@ -23,21 +23,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Load from localStorage on mount (client-side only)
-    try {
-      if (typeof window !== 'undefined') {
-        const storedToken = localStorage.getItem('auth_token');
-        const storedUser = localStorage.getItem('user');
+    const loadAuth = () => {
+      try {
+        if (typeof window !== 'undefined') {
+          const storedToken = localStorage.getItem('auth_token');
+          const storedUser = localStorage.getItem('user');
 
-        if (storedToken && storedUser) {
-          setToken(storedToken);
-          setUser(JSON.parse(storedUser));
+          if (storedToken && storedUser) {
+            setToken(storedToken);
+            setUser(JSON.parse(storedUser));
+          }
         }
+      } catch (error) {
+        console.error('Failed to load auth from localStorage:', error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Failed to load auth from localStorage:', error);
-    } finally {
-      setIsLoading(false);
-    }
+    };
+
+    loadAuth();
   }, []);
 
   const login = async (username: string, password: string) => {
