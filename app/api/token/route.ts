@@ -1,6 +1,6 @@
 export const runtime = 'edge';
 
-import { AccessToken } from 'livekit-server-sdk';
+import { SignJWT } from 'jose';
 import { NextRequest, NextResponse } from 'next/server';
 import { getRequestContext } from '@cloudflare/next-on-pages';
 import { requireAuth } from '@/lib/auth';
@@ -32,32 +32,36 @@ export async function POST(request: NextRequest) {
     // Use authenticated user's info
     const participantName = authResult.user.username;
 
-    // Create access token
-    const token = new AccessToken(
-      env.LIVEKIT_API_KEY,
-      env.LIVEKIT_API_SECRET,
-      {
-        identity: participantName,
-        metadata: JSON.stringify({
-          ...metadata,
-          userId: authResult.user.sub,
-          role: authResult.user.role,
-        }),
-      }
-    );
+    // Create LiveKit access token using jose
+    const encoder = new TextEncoder();
+    const secretKey = encoder.encode(env.LIVEKIT_API_SECRET);
 
-    token.addGrant({
+    const videoGrant = {
       room: roomName,
       roomJoin: true,
       canPublish: true,
       canSubscribe: true,
       canPublishData: true,
-    });
+    };
 
-    const jwt = await token.toJwt();
+    const token = await new SignJWT({
+      video: videoGrant,
+      metadata: JSON.stringify({
+        ...metadata,
+        userId: authResult.user.sub,
+        role: authResult.user.role,
+      }),
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setSubject(participantName)
+      .setIssuer(env.LIVEKIT_API_KEY)
+      .setAudience(env.LIVEKIT_API_KEY)
+      .setNotBefore(Math.floor(Date.now() / 1000))
+      .setExpirationTime('6h')
+      .sign(secretKey);
 
     return NextResponse.json({
-      token: jwt,
+      token,
       wsUrl: env.LIVEKIT_WS_URL,
     });
   } catch (error) {

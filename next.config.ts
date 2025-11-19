@@ -1,9 +1,6 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  // Disable static optimization for Cloudflare Pages
-  output: 'export',
-
   // Required for Cloudflare Pages
   images: {
     unoptimized: true,
@@ -12,6 +9,19 @@ const nextConfig: NextConfig = {
   // Environment variables
   env: {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+  },
+
+  // Webpack configuration for Edge runtime
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.resolve = config.resolve || {};
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        'node:crypto': false,
+        'crypto': false,
+      };
+    }
+    return config;
   },
 };
 

@@ -6,7 +6,7 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "livekit-conversations"
-database_id = "YOUR_DATABASE_ID_HERE"  # Replace with actual database ID after creation
+database_id = "bf346813-4929-48e8-b0bc-14d3a8c7eef7"
 
 # Pages configuration
 pages_build_output_dir = ".vercel/output/static"
