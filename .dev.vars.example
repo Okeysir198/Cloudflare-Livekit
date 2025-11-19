@@ -1,0 +1,7 @@
+# Copy this file to .dev.vars for local development
+# DO NOT commit .dev.vars to git
+
+JWT_SECRET=your-super-secret-jwt-key-at-least-32-characters-long-change-this
+LIVEKIT_API_KEY=your_livekit_api_key_here
+LIVEKIT_API_SECRET=your_livekit_api_secret_here
+LIVEKIT_WS_URL=ws://localhost:7880
