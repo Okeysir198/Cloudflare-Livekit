@@ -107,6 +107,38 @@ export interface LiveKitTokenResponse {
   wsUrl: string;
 }
 
+export interface CreateSessionRequest {
+  roomName: string;
+  participantIdentity: string;
+  metadata?: Record<string, any>;
+}
+
+export interface EndSessionRequest {
+  action: 'end';
+}
+
+export interface CreateConversationRequest {
+  sessionId: string;
+  title?: string;
+}
+
+export interface UpdateConversationRequest {
+  title?: string;
+  summary?: string;
+}
+
+export interface CreateMessageRequest {
+  sessionId: string;
+  role: 'user' | 'agent' | 'system';
+  content: string;
+  contentType?: 'text' | 'transcript' | 'event';
+  participantIdentity?: string;
+  trackId?: string;
+  segmentId?: string;
+  isFinal?: boolean;
+  metadata?: Record<string, any>;
+}
+
 export interface AuditLogEntry {
   id: string;
   userId: string;

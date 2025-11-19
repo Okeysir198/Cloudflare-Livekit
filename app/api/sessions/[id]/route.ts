@@ -4,13 +4,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getRequestContext } from '@cloudflare/next-on-pages';
 import { requireAuth } from '@/lib/auth';
 import { rowToSession } from '@/lib/db';
+import type { EndSessionRequest } from '@/lib/types';
 
 // GET /api/sessions/:id
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { env } = getRequestContext();
+  const { id } = await params;
 
   // Require authentication
   const authResult = await requireAuth(request, env.JWT_SECRET);
@@ -24,7 +26,7 @@ export async function GET(
   try {
     const sessionRow = await env.DB.prepare(`
       SELECT * FROM sessions WHERE id = ?
-    `).bind(params.id).first();
+    `).bind(id).first();
 
     if (!sessionRow) {
       return NextResponse.json(
@@ -56,9 +58,10 @@ export async function GET(
 // PATCH /api/sessions/:id - End session
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { env } = getRequestContext();
+  const { id } = await params;
 
   // Require authentication
   const authResult = await requireAuth(request, env.JWT_SECRET);
@@ -70,7 +73,7 @@ export async function PATCH(
   }
 
   try {
-    const { action } = await request.json();
+    const { action } = await request.json() as EndSessionRequest;
 
     if (action !== 'end') {
       return NextResponse.json(
@@ -82,7 +85,7 @@ export async function PATCH(
     // Get session
     const sessionRow = await env.DB.prepare(`
       SELECT * FROM sessions WHERE id = ?
-    `).bind(params.id).first();
+    `).bind(id).first();
 
     if (!sessionRow) {
       return NextResponse.json(
@@ -107,10 +110,10 @@ export async function PATCH(
       UPDATE sessions
       SET ended_at = ?, duration_seconds = ?
       WHERE id = ?
-    `).bind(endedAt, durationSeconds, params.id).run();
+    `).bind(endedAt, durationSeconds, id).run();
 
     return NextResponse.json({
-      id: params.id,
+      id,
       endedAt,
       durationSeconds,
     });

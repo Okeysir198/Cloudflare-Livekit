@@ -5,13 +5,15 @@ import { getRequestContext } from '@cloudflare/next-on-pages';
 import { requireAuth } from '@/lib/auth';
 import { rowToConversation, logAudit } from '@/lib/db';
 import { getClientIP, getUserAgent } from '@/lib/utils';
+import type { UpdateConversationRequest } from '@/lib/types';
 
 // GET /api/conversations/:id
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { env } = getRequestContext();
+  const { id } = await params;
 
   // Require authentication
   const authResult = await requireAuth(request, env.JWT_SECRET);
@@ -29,7 +31,7 @@ export async function GET(
       JOIN sessions s ON c.session_id = s.id
       JOIN users u ON c.user_id = u.id
       WHERE c.id = ?
-    `).bind(params.id).first();
+    `).bind(id).first();
 
     if (!conversationRow) {
       return NextResponse.json(
@@ -62,9 +64,10 @@ export async function GET(
 // DELETE /api/conversations/:id
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { env } = getRequestContext();
+  const { id } = await params;
 
   // Require authentication
   const authResult = await requireAuth(request, env.JWT_SECRET);
@@ -79,7 +82,7 @@ export async function DELETE(
     // Get conversation
     const conversationRow = await env.DB.prepare(`
       SELECT * FROM conversations WHERE id = ?
-    `).bind(params.id).first();
+    `).bind(id).first();
 
     if (!conversationRow) {
       return NextResponse.json(
@@ -103,14 +106,14 @@ export async function DELETE(
     // Delete conversation (cascades to messages)
     await env.DB.prepare(`
       DELETE FROM conversations WHERE id = ?
-    `).bind(params.id).run();
+    `).bind(id).run();
 
     // Log audit event
     await logAudit(env.DB, {
       userId: authResult.user.sub,
       action: 'delete_conversation',
       resourceType: 'conversation',
-      resourceId: params.id,
+      resourceId: id,
       ipAddress: getClientIP(request),
       userAgent: getUserAgent(request),
     });
@@ -128,9 +131,10 @@ export async function DELETE(
 // PATCH /api/conversations/:id
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { env } = getRequestContext();
+  const { id } = await params;
 
   // Require authentication
   const authResult = await requireAuth(request, env.JWT_SECRET);
@@ -142,12 +146,12 @@ export async function PATCH(
   }
 
   try {
-    const { title, summary } = await request.json();
+    const { title, summary } = await request.json() as UpdateConversationRequest;
 
     // Get conversation
     const conversationRow = await env.DB.prepare(`
       SELECT * FROM conversations WHERE id = ?
-    `).bind(params.id).first();
+    `).bind(id).first();
 
     if (!conversationRow) {
       return NextResponse.json(
@@ -175,7 +179,7 @@ export async function PATCH(
           summary = COALESCE(?, summary),
           updated_at = ?
       WHERE id = ?
-    `).bind(title, summary, now, params.id).run();
+    `).bind(title, summary, now, id).run();
 
     return NextResponse.json({ success: true });
   } catch (error) {

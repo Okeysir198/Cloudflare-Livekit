@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getRequestContext } from '@cloudflare/next-on-pages';
 import { requireAuth } from '@/lib/auth';
 import { checkConversationLimit, rowToConversation } from '@/lib/db';
+import type { CreateConversationRequest } from '@/lib/types';
 
 // GET /api/conversations - List conversations
 export async function GET(request: NextRequest) {
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { sessionId, title } = await request.json();
+    const { sessionId, title } = await request.json() as CreateConversationRequest;
 
     if (!sessionId) {
       return NextResponse.json(

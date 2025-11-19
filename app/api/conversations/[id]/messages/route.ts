@@ -4,13 +4,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getRequestContext } from '@cloudflare/next-on-pages';
 import { requireAuth } from '@/lib/auth';
 import { checkMessageLimit, rowToMessage } from '@/lib/db';
+import type { CreateMessageRequest } from '@/lib/types';
 
 // GET /api/conversations/:id/messages
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { env } = getRequestContext();
+  const { id } = await params;
 
   // Require authentication
   const authResult = await requireAuth(request, env.JWT_SECRET);
@@ -25,7 +27,7 @@ export async function GET(
     // Check conversation ownership
     const conversationRow = await env.DB.prepare(`
       SELECT user_id FROM conversations WHERE id = ?
-    `).bind(params.id).first();
+    `).bind(id).first();
 
     if (!conversationRow) {
       return NextResponse.json(
@@ -50,7 +52,7 @@ export async function GET(
       SELECT * FROM messages
       WHERE conversation_id = ?
       ORDER BY sequence_number ASC, timestamp ASC
-    `).bind(params.id).all();
+    `).bind(id).all();
 
     const messages = results?.map(rowToMessage) || [];
 
@@ -67,9 +69,10 @@ export async function GET(
 // POST /api/conversations/:id/messages
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { env } = getRequestContext();
+  const { id } = await params;
 
   // Require authentication
   const authResult = await requireAuth(request, env.JWT_SECRET);
@@ -91,7 +94,7 @@ export async function POST(
       segmentId,
       isFinal = true,
       metadata,
-    } = await request.json();
+    } = await request.json() as CreateMessageRequest;
 
     if (!sessionId || !role || !content) {
       return NextResponse.json(
@@ -103,7 +106,7 @@ export async function POST(
     // Check conversation ownership
     const conversationRow = await env.DB.prepare(`
       SELECT user_id FROM conversations WHERE id = ?
-    `).bind(params.id).first();
+    `).bind(id).first();
 
     if (!conversationRow) {
       return NextResponse.json(
@@ -126,7 +129,7 @@ export async function POST(
     // Check message limit
     const limitCheck = await checkMessageLimit(
       env.DB,
-      params.id,
+      id,
       authResult.user.sub,
       authResult.user.role
     );
@@ -138,7 +141,7 @@ export async function POST(
       );
     }
 
-    const id = crypto.randomUUID();
+    const messageId = crypto.randomUUID();
     const timestamp = Math.floor(Date.now() / 1000);
 
     // Get next sequence number
@@ -146,7 +149,7 @@ export async function POST(
       SELECT COALESCE(MAX(sequence_number), 0) + 1 as sequence_number
       FROM messages
       WHERE conversation_id = ?
-    `).bind(params.id).first();
+    `).bind(id).first();
 
     const sequenceNumber = (sequenceResult?.sequence_number as number) || 1;
 
@@ -158,8 +161,8 @@ export async function POST(
         timestamp, sequence_number, metadata
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
+      messageId,
       id,
-      params.id,
       sessionId,
       authResult.user.sub,
       role,
@@ -186,12 +189,12 @@ export async function POST(
       role === 'user' ? 1 : 0,
       role === 'agent' ? 1 : 0,
       timestamp,
-      params.id
+      id
     ).run();
 
     return NextResponse.json({
-      id,
-      conversationId: params.id,
+      id: messageId,
+      conversationId: id,
       sequenceNumber,
       timestamp,
     }, { status: 201 });

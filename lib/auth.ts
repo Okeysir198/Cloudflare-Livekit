@@ -1,14 +1,14 @@
 // Authentication utilities for Edge Runtime
 
 import { SignJWT, jwtVerify } from 'jose';
-import { hash, compare } from 'bcrypt-edge';
+import { hashSync, compareSync } from 'bcrypt-edge';
 import type { User, JWTPayload } from './types';
 
 const JWT_EXPIRY = '7d'; // 7 days
 
 // Hash password using bcrypt
 export async function hashPassword(password: string): Promise<string> {
-  return await hash(password, 10);
+  return hashSync(password, 10);
 }
 
 // Verify password against hash
@@ -17,7 +17,7 @@ export async function verifyPassword(
   passwordHash: string
 ): Promise<boolean> {
   try {
-    return await compare(password, passwordHash);
+    return compareSync(password, passwordHash);
   } catch (error) {
     console.error('Password verification error:', error);
     return false;
@@ -53,7 +53,7 @@ export async function verifyToken(
     const secretKey = encoder.encode(secret);
 
     const { payload } = await jwtVerify(token, secretKey);
-    return payload as JWTPayload;
+    return payload as unknown as JWTPayload;
   } catch (error) {
     console.error('Token verification error:', error);
     return null;

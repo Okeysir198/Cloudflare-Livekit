@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { User } from '@/lib/types';
+import type { User, LoginResponse } from '@/lib/types';
 
 interface AuthContextType {
   user: User | null;
@@ -41,11 +41,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     if (!response.ok) {
-      const data = await response.json();
+      const data = await response.json() as { error?: string };
       throw new Error(data.error || 'Login failed');
     }
 
-    const { token: newToken, user: newUser } = await response.json();
+    const { token: newToken, user: newUser } = await response.json() as LoginResponse;
 
     localStorage.setItem('auth_token', newToken);
     localStorage.setItem('user', JSON.stringify(newUser));

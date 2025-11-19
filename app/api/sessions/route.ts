@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getRequestContext } from '@cloudflare/next-on-pages';
 import { requireAuth } from '@/lib/auth';
 import { rowToSession } from '@/lib/db';
+import type { CreateSessionRequest } from '@/lib/types';
 
 // GET /api/sessions - List user's sessions
 export async function GET(request: NextRequest) {
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { roomName, participantIdentity, metadata } = await request.json();
+    const { roomName, participantIdentity, metadata } = await request.json() as CreateSessionRequest;
 
     if (!roomName || !participantIdentity) {
       return NextResponse.json(

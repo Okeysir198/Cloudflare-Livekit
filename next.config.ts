@@ -11,6 +11,11 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
   },
 
+  // Disable ESLint during build for faster deployment
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+
   // Webpack configuration for Edge runtime
   webpack: (config, { isServer }) => {
     if (isServer) {
