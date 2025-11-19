@@ -22,15 +22,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Load from localStorage on mount
-    const storedToken = localStorage.getItem('auth_token');
-    const storedUser = localStorage.getItem('user');
+    // Load from localStorage on mount (client-side only)
+    try {
+      if (typeof window !== 'undefined') {
+        const storedToken = localStorage.getItem('auth_token');
+        const storedUser = localStorage.getItem('user');
 
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+        if (storedToken && storedUser) {
+          setToken(storedToken);
+          setUser(JSON.parse(storedUser));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load auth from localStorage:', error);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
   const login = async (username: string, password: string) => {
@@ -47,16 +54,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { token: newToken, user: newUser } = await response.json() as LoginResponse;
 
-    localStorage.setItem('auth_token', newToken);
-    localStorage.setItem('user', JSON.stringify(newUser));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('auth_token', newToken);
+      localStorage.setItem('user', JSON.stringify(newUser));
+    }
 
     setToken(newToken);
     setUser(newUser);
   };
 
   const logout = () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user');
+    }
     setToken(null);
     setUser(null);
     router.push('/login');
