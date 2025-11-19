@@ -19,29 +19,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Start with false to match SSR - will load on client mount
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    // Briefly set loading while we check localStorage
+    setIsLoading(true);
+
     // Load from localStorage on mount (client-side only)
-    const loadAuth = () => {
-      try {
-        if (typeof window !== 'undefined') {
-          const storedToken = localStorage.getItem('auth_token');
-          const storedUser = localStorage.getItem('user');
+    try {
+      const storedToken = localStorage.getItem('auth_token');
+      const storedUser = localStorage.getItem('user');
 
-          if (storedToken && storedUser) {
-            setToken(storedToken);
-            setUser(JSON.parse(storedUser));
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load auth from localStorage:', error);
-      } finally {
-        setIsLoading(false);
+      if (storedToken && storedUser) {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
       }
-    };
-
-    loadAuth();
+    } catch (error) {
+      console.error('Failed to load auth from localStorage:', error);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   const login = async (username: string, password: string) => {
